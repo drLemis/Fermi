@@ -1,7 +1,5 @@
 'use strict';
 
-const colorBackground = "#050505";
-
 const canvas = document.getElementById("graphCanvas");
 const ctx = canvas.getContext("2d");
 
@@ -9,11 +7,33 @@ function updateField() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    ctx.fillStyle = colorBackground;
+    ctx.fillStyle = "#050505";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     for (let index = 0; index < listStars.length; index++) {
         drawStar(listStars[index]);
+    }
+
+    var actualX = window.innerWidth / playerStar.pos[0];
+    var actualY = window.innerHeight / playerStar.pos[1];
+
+    ctx.fillStyle = "#FF0000";
+    ctx.textAlign = "center";
+    ctx.font = "16px Consolas";
+    ctx.fillText("YOU->", actualX - 25, actualY + 5);
+
+    for (let index = 0; index < listStars.length; index++) {
+        var starOther = listStars[index];
+        if (starOther != playerStar && starOther.evolutionStage >= 5) {
+            var distance = getDistance(actualX, actualY, window.innerWidth / starOther.pos[0], window.innerHeight / starOther.pos[1]);
+
+            if (distance < starOther.radius && distance > starOther.innerRadius) {
+                if (playerStar.evolutionStage < 5) {
+                    ctx.fillText("NO ONE TO HEAR!", actualX, actualY - 10);
+                    break;
+                }
+            }
+        }
     }
 
     ctx.fillStyle = "#555555";
@@ -28,7 +48,15 @@ function updateField() {
 function drawStar(star) {
     let size = star.evolutionStage + 1;
 
-    if (star.evolutionStage >= 5) {
+    var actualX = window.innerWidth / star.pos[0];
+    var actualY = window.innerHeight / star.pos[1];
+    var maxX = window.innerWidth;
+    var maxY = window.innerHeight;
+
+
+    if ((star.evolutionStage >= 5 || star.radius > 0) &&
+        (star.innerRadius < getDistance(actualX, actualY, 0, 0) || star.innerRadius < getDistance(actualX, actualY, maxX, maxY) ||
+            star.innerRadius < getDistance(actualX, actualY, 0, maxY) || star.innerRadius < getDistance(actualX, actualY, maxX, 0))) {
         size = 4;
         let radius = star.radius;
         star.radius++;
@@ -41,53 +69,31 @@ function drawStar(star) {
         while (radius > star.innerRadius) {
             ctx.strokeStyle = `hsl(${star.colorValues[0]},${star.colorValues[1]}%,${star.colorValues[2]}%,${star.colorValues[3]-alpha})`;
             ctx.beginPath();
-            ctx.arc(window.innerWidth / star.pos[0], window.innerHeight / star.pos[1], radius, 0, 2 * Math.PI);
+            ctx.arc(actualX, actualY, radius, 0, 2 * Math.PI);
             ctx.stroke();
             radius -= 0.5;
-            if (alpha < 0.9)
+            if (alpha < 0.95)
                 alpha += 0.03;
         }
     }
 
     ctx.fillStyle = star.colorString;
     ctx.beginPath();
-    ctx.arc(window.innerWidth / star.pos[0], window.innerHeight / star.pos[1], size, 0, 2 * Math.PI);
+    ctx.arc(actualX, actualY, size, 0, 2 * Math.PI);
     ctx.fill();
 
     if (star.evolutionStage > 0) {
         ctx.fillStyle = "#FFFFFF";
         ctx.textAlign = "center";
         ctx.font = "16px Consolas";
-        ctx.fillText("LIFE: " + enumEvolution[+star.evolutionStage], window.innerWidth / star.pos[0], window.innerHeight / star.pos[1] + 16);
+        ctx.fillText("LIFE: " + enumEvolution[+star.evolutionStage], actualX, actualY + 18);
     }
 
     if (star.status != "") {
         ctx.fillStyle = "#FF0000";
         ctx.textAlign = "left";
         ctx.font = "16px Consolas";
-        ctx.fillText(star.status, window.innerWidth / star.pos[0]+10, window.innerHeight / star.pos[1]);
-    }
-
-
-    if (star == playerStar) {
-        ctx.fillStyle = "#FF0000";
-        ctx.textAlign = "center";
-        ctx.font = "16px Consolas";
-        ctx.fillText("YOU->", window.innerWidth / star.pos[0] - 25, window.innerHeight / star.pos[1] + 5);
-
-        for (let index = 0; index < listStars.length; index++) {
-            var starOther = listStars[index];
-            if (starOther != star && starOther.evolutionStage >= 5) {
-                var distance = Math.getDistance(window.innerWidth / star.pos[0], window.innerHeight / star.pos[1], window.innerWidth / starOther.pos[0], window.innerHeight / starOther.pos[1]);
-
-                if (distance < starOther.radius && distance > starOther.innerRadius) {
-                    if (star.evolutionStage < 5) {
-                        ctx.fillText("NO ONE TO HEAR!", window.innerWidth / star.pos[0], window.innerHeight / star.pos[1] - 10);
-                        break;
-                    }
-                }
-            }
-        }
+        ctx.fillText(star.status, actualX + 10, actualY);
     }
 }
 
@@ -114,7 +120,7 @@ const randomColor = (() => {
     };
 })();
 
-Math.getDistance = function (x1, y1, x2, y2) {
+function getDistance(x1, y1, x2, y2) {
 
     var xs = x2 - x1,
         ys = y2 - y1;

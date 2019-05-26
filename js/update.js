@@ -1,6 +1,7 @@
-let yearsCurrent = 0;
+'use strict'
 
-let yearsForFirstStage = 500 // 500 preferred
+let yearsCurrent = 0;
+let yearsForFirstStage = 750 // 750 preferred
 
 window.setInterval(function () {
     yearsCurrent++;
@@ -16,7 +17,7 @@ window.setInterval(function () {
         if (star.evolutionStage == 0 && Math.random() < 0.0001) {
             star.yearsEvolution = yearsCurrent;
             star.evolutionStage++;
-        } else if (star.evolutionStage > 0 && Math.random() < 0.0001) {
+        } else if (star.evolutionStage > 0 && Math.random() < 0.0001 / star.yearsMod) {
             star.yearsEvolution = yearsCurrent;
             star.evolutionStage--;
 
@@ -24,14 +25,14 @@ window.setInterval(function () {
                 star.evolutionStage = 0;
                 star.status = "DEATH!"
             } else {
+                star.yearsMod * 0.5;
                 if (Math.random() > 0.5)
                     star.status = "WAR!"
                 else
                     star.status = "PLAGUE!"
             }
-
         }
-
+        
         if (star.status != "" && yearsCurrent - star.yearsEvolution >= 100) {
             star.status = "";
         }
