@@ -14,22 +14,26 @@ function updateField() {
         drawStar(listStars[index]);
     }
 
-    var actualX = window.innerWidth / playerStar.pos[0];
-    var actualY = window.innerHeight / playerStar.pos[1];
+    for (let index = 0; index < listShips.length; index++) {
+        drawShip(listShips[index]);
+    }
+
+    var actualPos = getActualPos(playerStar.pos);
 
     ctx.fillStyle = "#FF0000";
     ctx.textAlign = "center";
     ctx.font = "16px Consolas";
-    ctx.fillText("YOU->", actualX - 25, actualY + 5);
+    ctx.fillText("YOU->", actualPos.x - 25, actualPos.y + 5);
 
     for (let index = 0; index < listStars.length; index++) {
         var starOther = listStars[index];
         if (starOther != playerStar && starOther.evolutionStage >= 5) {
-            var distance = getDistance(actualX, actualY, window.innerWidth / starOther.pos[0], window.innerHeight / starOther.pos[1]);
+            var starOtherPos = getActualPos(starOther.pos);
+            var distance = getDistanceVec(actualPos, starOtherPos);
 
             if (distance < starOther.radius && distance > starOther.innerRadius) {
                 if (playerStar.evolutionStage < 5) {
-                    ctx.fillText("NO ONE TO HEAR!", actualX, actualY - 10);
+                    ctx.fillText("NO ONE TO HEAR!", actualPos.x, actualPos.y - 10);
                     break;
                 }
             }
@@ -48,28 +52,26 @@ function updateField() {
 function drawStar(star) {
     let size = star.evolutionStage + 1;
 
-    var actualX = window.innerWidth / star.pos[0];
-    var actualY = window.innerHeight / star.pos[1];
-    var maxX = window.innerWidth;
-    var maxY = window.innerHeight;
+    var actualPos = getActualPos(star.pos);
+    var maxPos = new vector(window.innerWidth, window.innerHeight);
 
 
     if ((star.evolutionStage >= 5 || star.radius > 0) &&
-        (star.innerRadius < getDistance(actualX, actualY, 0, 0) || star.innerRadius < getDistance(actualX, actualY, maxX, maxY) ||
-            star.innerRadius < getDistance(actualX, actualY, 0, maxY) || star.innerRadius < getDistance(actualX, actualY, maxX, 0))) {
+        (star.innerRadius < getDistanceVec(actualPos, {x:0,y:0}) || star.innerRadius < getDistanceVec(actualPos, maxPos) ||
+            star.innerRadius < getDistanceVec(actualPos, {x:0, y:maxPos.y}) || star.innerRadius < getDistanceVec(actualPos, {x:maxPos.x, y:0}))) {
         size = 4;
         let radius = star.radius;
         star.radius++;
 
         // no more radio
-        if (star.evolutionStage >= 8)
+        if (star.evolutionStage >= 8 || star.innerRadius > 0)
             star.innerRadius++;
 
         let alpha = 0;
         while (radius > star.innerRadius) {
             ctx.strokeStyle = `hsl(${star.colorValues[0]},${star.colorValues[1]}%,${star.colorValues[2]}%,${star.colorValues[3]-alpha})`;
             ctx.beginPath();
-            ctx.arc(actualX, actualY, radius, 0, 2 * Math.PI);
+            ctx.arc(actualPos.x, actualPos.y, radius, 0, 2 * Math.PI);
             ctx.stroke();
             radius -= 0.5;
             if (alpha < 0.95)
@@ -79,54 +81,39 @@ function drawStar(star) {
 
     ctx.fillStyle = star.colorString;
     ctx.beginPath();
-    ctx.arc(actualX, actualY, size, 0, 2 * Math.PI);
+    ctx.arc(actualPos.x, actualPos.y, size, 0, 2 * Math.PI);
     ctx.fill();
 
     if (star.evolutionStage > 0) {
         ctx.fillStyle = "#FFFFFF";
         ctx.textAlign = "center";
         ctx.font = "16px Consolas";
-        ctx.fillText("LIFE: " + enumEvolution[+star.evolutionStage], actualX, actualY + 18);
+        ctx.fillText("LIFE: " + enumEvolution[+star.evolutionStage], actualPos.x, actualPos.y + 18);
+        
+        if (star.ruler != null && star.ruler != star) {
+            var from = getActualPos(star.pos);
+            var to = getActualPos(star.ruler.pos);
+            ctx.strokeStyle = star.ruler.colorString
+            ctx.beginPath();
+            ctx.moveTo(from.x, from.y);
+            ctx.lineTo(to.x, to.y);
+            ctx.stroke();
+        }
     }
 
     if (star.status != "") {
         ctx.fillStyle = "#FF0000";
         ctx.textAlign = "left";
         ctx.font = "16px Consolas";
-        ctx.fillText(star.status, actualX + 10, actualY);
+        ctx.fillText(star.status, actualPos.x + 10, actualPos.y);
     }
 }
 
-const randomColor = (() => {
-    "use strict";
+function drawShip(ship) {
+    var actualPos = getActualPos(ship.pos);
 
-    const randomInt = (min, max) => {
-        return Math.floor(Math.random() * (max - min + 1)) + min;
-    };
-
-    return () => {
-        var h = randomInt(0, 360);
-        var s = randomInt(42, 98);
-        var l = randomInt(40, 90);
-
-        var obj = {
-            values: [h, s, l, 1],
-            string: `hsla(${h},${s}%,${l}%,1)`
-        };
-
-        return obj
-
-        //return `hsl(${h},${s}%,${l}%)`;
-    };
-})();
-
-function getDistance(x1, y1, x2, y2) {
-
-    var xs = x2 - x1,
-        ys = y2 - y1;
-
-    xs *= xs;
-    ys *= ys;
-
-    return Math.abs(Math.sqrt(xs + ys));
-};
+    ctx.fillStyle = ship.homeStar.colorString;
+    ctx.beginPath();
+    ctx.arc(actualPos.x, actualPos.y, 2, 0, 2 * Math.PI);
+    ctx.fill();
+}
